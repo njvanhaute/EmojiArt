@@ -59,6 +59,12 @@ struct EmojiArtDocumentView: View {
     @State private var selectedEmojis: Set<Emoji.ID> = []
     
     @GestureState private var gestureDragSelection: CGOffset = .zero
+    @GestureState private var gestureDragUnselected: UnselectedDragState = .init()
+    
+    private struct UnselectedDragState {
+        var emojiId: Emoji.ID?
+        var offset: CGOffset = .zero
+    }
     
     private var zoomGesture: some Gesture {
         MagnificationGesture()
@@ -94,6 +100,17 @@ struct EmojiArtDocumentView: View {
             }
     }
     
+    private func dragUnselectedGesture(emojiId: Emoji.ID) -> some Gesture {
+        DragGesture()
+            .updating($gestureDragUnselected) { inMotionDragPosition, gestureDragUnselected, _ in
+                gestureDragUnselected.emojiId = emojiId
+                gestureDragUnselected.offset = inMotionDragPosition.translation
+            }
+            .onEnded { endingDragPosition in
+                document.move(emojiWithId: emojiId, by: endingDragPosition.translation)
+            }
+    }
+    
     @ViewBuilder
     private func documentContents(in geometry: GeometryProxy) -> some View {
         AsyncImage(url: document.background)
@@ -109,12 +126,14 @@ struct EmojiArtDocumentView: View {
     @ViewBuilder
     private func emojiView(from emoji: Emoji, in geometry: GeometryProxy) -> some View {
         let isSelected = selectedEmojis.contains(emoji.id)
+        let isUnselectedAndDragged = !isSelected && gestureDragUnselected.emojiId != nil && gestureDragUnselected.emojiId! == emoji.id
         Text(emoji.string)
             .font(emoji.font)
             .border(.green, width: isSelected ? Constants.selectionBorderWidth / gestureZoom : 0)
             .scaleEffect(isSelected ? gestureZoom : 1)
             .position(emoji.position.in(geometry))
             .offset(isSelected ? gestureDragSelection : .zero)
+            .offset(isUnselectedAndDragged ? gestureDragUnselected.offset : .zero)
             .onTapGesture {
                 if isSelected {
                     selectedEmojis.remove(emoji.id)
@@ -123,6 +142,7 @@ struct EmojiArtDocumentView: View {
                 }
             }
             .gesture(isSelected ? dragSelectionGesture : nil)
+            .gesture(!isSelected ? dragUnselectedGesture(emojiId: emoji.id) : nil)
     }
     
     private func drop(_ sturldatas: [Sturldata], at location: CGPoint, in geometry: GeometryProxy) -> Bool {
