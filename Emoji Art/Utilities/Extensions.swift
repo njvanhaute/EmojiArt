@@ -18,6 +18,10 @@ extension String {
             }
         }
     }
+    
+    mutating func remove(_ ch: Character) {
+        removeAll { $0 == ch }
+    }
 }
 
 extension CGRect {
@@ -71,5 +75,14 @@ struct AnimatedActionButton: View {
                 Image(systemName: systemImage)
             }
         }
+    }
+}
+
+extension Character {
+    var isEmoji: Bool {
+        if let firstScalar = unicodeScalars.first, firstScalar.properties.isEmoji {
+            return (firstScalar.value >= 0x238d || unicodeScalars.count > 1)
+        }
+        return false
     }
 }

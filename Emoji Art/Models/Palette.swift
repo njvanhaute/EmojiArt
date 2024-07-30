@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Palette: Codable, Identifiable {
+struct Palette: Codable, Hashable, Identifiable {
     var name: String
     var emojis: String
     var id = UUID()
